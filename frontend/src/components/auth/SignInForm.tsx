@@ -22,8 +22,9 @@ export const SignInForm = ({ onToggleMode, onSuccess }: SignInFormProps) => {
     try {
       await signIn(email, password);
       onSuccess?.();
-    } catch (error: any) {
-      setError(error.message || 'Une erreur est survenue');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      setError(message);
     } finally {
       setLoading(false);
     }

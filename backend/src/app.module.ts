@@ -12,7 +12,7 @@ import { ClubsModule } from './clubs/clubs.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env.local',
+      envFilePath: '.env',
     }),
     PrismaModule,
     AuthModule,

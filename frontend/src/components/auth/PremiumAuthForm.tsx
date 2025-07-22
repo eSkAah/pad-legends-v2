@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '../../hooks/useAuth';
+import { signInSchema, signUpSchema, type SignInFormData, type SignUpFormData } from '../../schemas/auth.schemas';
 import { Eye, EyeOff, Sparkles, Mail, Lock, User, Loader2, ArrowRight } from 'lucide-react';
 
 export const PremiumAuthForm = () => {
   const [isSignIn, setIsSignIn] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [pseudo, setPseudo] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,23 +14,47 @@ export const PremiumAuthForm = () => {
 
   const { signIn, signUp } = useAuth();
 
+  // Sign in form
+  const signInForm = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  // Sign up form
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      pseudo: '',
+      email: '',
+      password: '',
+    },
+  });
+
+  // Get current form based on mode
+  const currentForm = isSignIn ? signInForm : signUpForm;
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (data: SignInFormData | SignUpFormData) => {
     setError('');
     setLoading(true);
 
     try {
       if (isSignIn) {
-        await signIn(email, password);
+        const signInData = data as SignInFormData;
+        await signIn(signInData.email, signInData.password);
       } else {
-        await signUp(email, password, { pseudo });
+        const signUpData = data as SignUpFormData;
+        await signUp(signUpData.email, signUpData.password, { pseudo: signUpData.pseudo });
       }
-    } catch (error: any) {
-      setError(error.message || 'Une erreur est survenue');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -39,6 +63,9 @@ export const PremiumAuthForm = () => {
   const toggleMode = () => {
     setIsSignIn(!isSignIn);
     setError('');
+    // Reset both forms when switching modes
+    signInForm.reset();
+    signUpForm.reset();
   };
 
   if (!mounted) {
@@ -85,7 +112,7 @@ export const PremiumAuthForm = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={currentForm.handleSubmit(handleSubmit)} className="space-y-6">
           {error && (
             <div className="animate-fade-in-up p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm text-center backdrop-blur-sm">
               {error}
@@ -104,16 +131,19 @@ export const PremiumAuthForm = () => {
                 </div>
                 <input
                   type="text"
-                  value={pseudo}
-                  onChange={(e) => setPseudo(e.target.value)}
-                  className="input-field focus-ring pl-12"
+                  {...signUpForm.register('pseudo')}
+                  className={`input-field focus-ring pl-12 ${
+                    signUpForm.formState.errors.pseudo ? 'border-red-500 bg-red-500/5' : ''
+                  }`}
                   placeholder="Choisissez votre pseudo"
-                  required={!isSignIn}
                   disabled={loading}
-                  minLength={3}
-                  maxLength={20}
                 />
               </div>
+              {signUpForm.formState.errors.pseudo && (
+                <p className="mt-2 text-sm text-red-400 animate-fade-in-up">
+                  {signUpForm.formState.errors.pseudo.message}
+                </p>
+              )}
             </div>
           )}
 
@@ -128,14 +158,19 @@ export const PremiumAuthForm = () => {
               </div>
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-field focus-ring pl-12"
+                {...(isSignIn ? signInForm.register('email') : signUpForm.register('email'))}
+                className={`input-field focus-ring pl-12 ${
+                  currentForm.formState.errors.email ? 'border-red-500 bg-red-500/5' : ''
+                }`}
                 placeholder="votre@email.com"
-                required
                 disabled={loading}
               />
             </div>
+            {currentForm.formState.errors.email && (
+              <p className="mt-2 text-sm text-red-400 animate-fade-in-up">
+                {currentForm.formState.errors.email.message}
+              </p>
+            )}
           </div>
 
           <div className="input-group animate-fade-in-up" style={{ animationDelay: '200ms' }}>
@@ -149,29 +184,34 @@ export const PremiumAuthForm = () => {
               </div>
               <input
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field focus-ring pl-12 pr-12"
+                {...(isSignIn ? signInForm.register('password') : signUpForm.register('password'))}
+                className={`input-field focus-ring pl-12 pr-12 ${
+                  currentForm.formState.errors.password ? 'border-red-500 bg-red-500/5' : ''
+                }`}
                 placeholder={isSignIn ? 'Votre mot de passe' : 'Minimum 6 caractères'}
-                required
                 disabled={loading}
-                minLength={isSignIn ? undefined : 6}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="input-icon-right focus-ring"
-                disabled={loading}
+              <div
+                onClick={() => !loading && setShowPassword(!showPassword)}
+                className="input-icon-right cursor-pointer"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+                {showPassword ? 
+                  <EyeOff size={18} className="text-gray-500 hover:text-amber-400 transition-colors" /> : 
+                  <Eye size={18} className="text-gray-500 hover:text-amber-400 transition-colors" />
+                }
+              </div>
             </div>
+            {currentForm.formState.errors.password && (
+              <p className="mt-2 text-sm text-red-400 animate-fade-in-up">
+                {currentForm.formState.errors.password.message}
+              </p>
+            )}
           </div>
 
           <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <button
               type="submit"
-              disabled={loading || !email || !password || (!isSignIn && !pseudo)}
+              disabled={loading || !currentForm.formState.isValid}
               className="btn-primary w-full focus-ring group"
             >
               {loading ? (
@@ -191,29 +231,18 @@ export const PremiumAuthForm = () => {
 
         {/* Toggle Mode */}
         <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent h-px top-1/2"></div>
-            <div className="relative bg-navy-900 px-4 mx-auto inline-block">
-              <button
-                onClick={toggleMode}
-                className="group relative text-gray-400 hover:text-white text-sm transition-all duration-500 hover:scale-105 focus-ring rounded-xl px-6 py-3 hover:bg-amber-400/5 border border-transparent hover:border-amber-400/20"
-                disabled={loading}
-              >
-                <div className="flex items-center space-x-2">
-                  <span>{isSignIn ? 'Pas encore de compte ?' : 'Déjà un compte ?'}</span>
-                  <div className="flex items-center space-x-1 group-hover:space-x-2 transition-all duration-300">
-                    <span className="text-amber-400 font-semibold">
-                      {isSignIn ? 'Inscrivez-vous' : 'Connectez-vous'}
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-amber-400 transition-transform duration-300 group-hover:translate-x-1" />
-                  </div>
-                </div>
-                
-                {/* Subtle glow effect */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              </button>
-            </div>
-          </div>
+          <p className="text-gray-400 text-sm">
+            {isSignIn ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
+            <span 
+              onClick={!loading ? toggleMode : undefined}
+              className="font-bold cursor-pointer transition-colors duration-300 disabled:opacity-50"
+              style={{ color: 'var(--color-amber-400)' }}
+              onMouseEnter={(e) => (e.target as HTMLSpanElement).style.color = 'var(--color-amber-300)'}
+              onMouseLeave={(e) => (e.target as HTMLSpanElement).style.color = 'var(--color-amber-400)'}
+            >
+              {isSignIn ? 'Inscrivez-vous' : 'Connectez-vous'}
+            </span>
+          </p>
         </div>
 
         {/* Footer */}
