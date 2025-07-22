@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User profiles - extends Supabase auth.users
+model Profile {
+  id              String    @id @db.Uuid
+  email           String    @unique
+  pseudo          String    @unique @db.VarChar(20)
+  level           Int       @default(5) // 1-10 scale
+  preferred_side  PreferredSide @default(both)
+  avatar_url      String?
+  age             Int?
+  description     String?   @db.VarChar(100)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  is_verified     Boolean   @default(false)
+
+  // Relations
+  created_matches     Match[]        @relation("MatchCreator")
+  participated_matches MatchParticipant[]
+  sent_friendships    Friendship[]   @relation("FriendshipRequester")
+  received_friendships Friendship[]  @relation("FriendshipReceiver")
+  chat_messages       ChatMessage[]
+  user_stats          UserStats?
+  favorite_clubs      ProfileClub[]
+
+  @@map("profiles")
+}
+
+// Clubs with geolocation
+model Club {
+  id          String    @id @default(cuid()) @db.VarChar(30)
+  name        String    @db.VarChar(100)
+  address     String    @db.VarChar(200)
+  latitude    Float     @db.DoublePrecision
+  longitude   Float     @db.DoublePrecision
+  city        String    @db.VarChar(50)
+  phone       String?   @db.VarChar(20)
+  created_at  DateTime  @default(now())
+
+  // Relations
+  matches         Match[]
+  favorite_by     ProfileClub[]
+
+  @@map("clubs")
+}
+
+// Many-to-many relation between users and favorite clubs
+model ProfileClub {
+  profile_id  String    @db.Uuid
+  club_id     String    @db.VarChar(30)
+  created_at  DateTime  @default(now())
+
+  // Relations
+  profile     Profile   @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  club        Club      @relation(fields: [club_id], references: [id], onDelete: Cascade)
+
+  @@id([profile_id, club_id])
+  @@map("profile_clubs")
+}
+
+// Matches/Games
+model Match {
+  id              String      @id @default(cuid()) @db.VarChar(30)
+  creator_id      String      @db.Uuid
+  club_id         String      @db.VarChar(30)
+  scheduled_date  DateTime
+  level_min       Int         @default(1)
+  level_max       Int         @default(10)
+  status          MatchStatus @default(open)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  // Relations
+  creator         Profile             @relation("MatchCreator", fields: [creator_id], references: [id], onDelete: Cascade)
+  club            Club                @relation(fields: [club_id], references: [id], onDelete: Cascade)
+  participants    MatchParticipant[]
+  chat_messages   ChatMessage[]
+
+  @@map("matches")
+}
+
+// Match participants (many-to-many)
+model MatchParticipant {
+  id          String    @id @default(cuid()) @db.VarChar(30)
+  match_id    String    @db.VarChar(30)
+  profile_id  String    @db.Uuid
+  joined_at   DateTime  @default(now())
+
+  // Relations
+  match       Match     @relation(fields: [match_id], references: [id], onDelete: Cascade)
+  profile     Profile   @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+
+  @@unique([match_id, profile_id])
+  @@map("match_participants")
+}
+
+// Friendships
+model Friendship {
+  id            String          @id @default(cuid()) @db.VarChar(30)
+  requester_id  String          @db.Uuid
+  receiver_id   String          @db.Uuid
+  status        FriendshipStatus @default(pending)
+  created_at    DateTime        @default(now())
+
+  // Relations
+  requester     Profile         @relation("FriendshipRequester", fields: [requester_id], references: [id], onDelete: Cascade)
+  receiver      Profile         @relation("FriendshipReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  @@unique([requester_id, receiver_id])
+  @@map("friendships")
+}
+
+// Chat messages for matches
+model ChatMessage {
+  id          String    @id @default(cuid()) @db.VarChar(30)
+  match_id    String    @db.VarChar(30)
+  sender_id   String    @db.Uuid
+  content     String    @db.Text
+  created_at  DateTime  @default(now())
+
+  // Relations
+  match       Match     @relation(fields: [match_id], references: [id], onDelete: Cascade)
+  sender      Profile   @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// User statistics and badges
+model UserStats {
+  id              String    @id @default(cuid()) @db.VarChar(30)
+  profile_id      String    @unique @db.Uuid
+  matches_played  Int       @default(0)
+  matches_won     Int       @default(0)
+  matches_lost    Int       @default(0)
+  current_streak  Int       @default(0)
+  badges          Badge[]   @default([])
+  updated_at      DateTime  @updatedAt
+
+  // Relations
+  profile         Profile   @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+// Enums
+enum PreferredSide {
+  left
+  right
+  both
+}
+
+enum MatchStatus {
+  open
+  full
+  completed
+  cancelled
+}
+
+enum FriendshipStatus {
+  pending
+  accepted
+  blocked
+}
+
+enum Badge {
+  rookie
+  social
+  regular
+  veteran
+  legend
+  streak_master
+  explorer
+  community_builder
+}
