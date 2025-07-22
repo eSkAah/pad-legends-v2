@@ -99,7 +99,7 @@ export const PremiumAuthForm = () => {
                 Pseudo *
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+                <div className="input-icon-left">
                   <User size={20} />
                 </div>
                 <input
@@ -123,7 +123,7 @@ export const PremiumAuthForm = () => {
               Email *
             </label>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+              <div className="input-icon-left">
                 <Mail size={20} />
               </div>
               <input
@@ -144,7 +144,7 @@ export const PremiumAuthForm = () => {
               Mot de passe *
             </label>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+              <div className="input-icon-left">
                 <Lock size={20} />
               </div>
               <input
@@ -160,7 +160,7 @@ export const PremiumAuthForm = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-400 transition-all duration-300 p-2 hover:bg-amber-400/10 rounded-lg focus-ring"
+                className="input-icon-right focus-ring"
                 disabled={loading}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}

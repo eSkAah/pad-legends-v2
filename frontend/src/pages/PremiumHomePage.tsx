@@ -1,5 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Plus, Calendar, Users, User, TrendingUp, Award, MapPin, Sparkles } from 'lucide-react';
+import { LogOut, Plus, Calendar, Users, User, TrendingUp, Award, MapPin } from 'lucide-react';
 
 export const PremiumHomePage = () => {
   const { profile, signOut } = useAuth();
