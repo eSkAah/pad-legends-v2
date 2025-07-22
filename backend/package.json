@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/main.ts",
+    "dev": "PORT=3001 nodemon --exec ts-node src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js",
-    "start:dev": "nodemon --exec ts-node src/main.ts",
-    "start:debug": "nodemon --inspect=0.0.0.0:9229 --exec ts-node src/main.ts",
-    "start:prod": "node dist/main.js",
+    "start": "PORT=3001 node dist/main.js",
+    "start:dev": "PORT=3001 nodemon --exec ts-node src/main.ts",
+    "start:debug": "PORT=3001 nodemon --inspect=0.0.0.0:9229 --exec ts-node src/main.ts",
+    "start:prod": "PORT=3001 node dist/main.js",
     "lint": "echo 'Backend linting not configured yet'",
     "test": "echo 'Backend tests not configured yet'",
     "db:generate": "prisma generate",
@@ -36,13 +36,17 @@
     "passport-jwt": "^4.0.1",
     "prisma": "^6.12.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sonner": "^2.0.6"
   },
   "devDependencies": {
+    "@cypress/react": "^9.0.1",
+    "@cypress/vite-dev-server": "^6.0.3",
     "@nestjs/cli": "^11.0.7",
     "@nestjs/testing": "^11.1.5",
     "@types/node": "^24.0.15",
     "@types/passport-jwt": "^4.0.1",
+    "cypress": "^14.5.2",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

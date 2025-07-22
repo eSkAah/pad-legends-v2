@@ -1,29 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabase';
-import type { Profile } from '../types';
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: Profile | null;
-  loading: boolean;
-  signUp: (email: string, password: string, userData?: any) => Promise<any>;
-  signIn: (email: string, password: string) => Promise<any>;
-  signOut: () => Promise<void>;
-  refreshSession: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+import { useToast, handleApiError } from '../hooks/useToast';
+import { AuthContext } from './';
+import type { AuthContextType } from './AuthContextType';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -35,7 +15,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const { showSuccess, showError } = useToast();
+
+  const fetchProfile = useCallback(async (token: string) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data.profile);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }, [API_URL]);
 
   useEffect(() => {
     // Get initial session
@@ -70,26 +68,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
-  const fetchProfile = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.profile);
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
-  };
-
-  const signUp = async (email: string, password: string, userData?: any) => {
+  const signUp = async (email: string, password: string, userData?: Record<string, unknown>) => {
     try {
       const response = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
@@ -105,8 +86,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(data.message || 'Signup failed');
       }
 
+      showSuccess('Compte créé avec succès ! Bienvenue sur Pad Legends 🎾');
       return data;
     } catch (error) {
+      handleApiError(error, showError);
       throw error;
     }
   };
@@ -127,9 +110,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(data.message || 'Signin failed');
       }
 
-      // Supabase client will automatically handle the session via onAuthStateChange
+      showSuccess('Connexion réussie ! Bon retour sur Pad Legends 👋');
       return data;
     } catch (error) {
+      handleApiError(error, showError);
       throw error;
     }
   };
@@ -146,8 +130,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       await supabase.auth.signOut();
+      showSuccess('Déconnexion réussie ! À bientôt 👋');
     } catch (error) {
-      console.error('Error signing out:', error);
+      handleApiError(error, showError);
     }
   };
 

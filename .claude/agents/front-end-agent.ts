@@ -14,6 +14,7 @@ const frontendAgent: AgentConfig = {
     "PWA optimization and performance",
     "State management (Zustand/React Query)",
     "Accessibility and user experience",
+    "Sonner as a toast library",
   ] as const,
 
   context: {

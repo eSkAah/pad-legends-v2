@@ -1,0 +1,39 @@
+{
+  "validUser": {
+    "pseudo": "testuser",
+    "email": "test@example.com",
+    "password": "Test123!"
+  },
+  "existingUser": {
+    "pseudo": "existinguser",
+    "email": "existing@example.com",
+    "password": "Test123!"
+  },
+  "invalidUsers": {
+    "shortPseudo": {
+      "pseudo": "ab",
+      "email": "short@example.com",
+      "password": "Test123!"
+    },
+    "invalidPseudo": {
+      "pseudo": "test@user!",
+      "email": "invalid@example.com",
+      "password": "Test123!"
+    },
+    "invalidEmail": {
+      "pseudo": "testuser",
+      "email": "invalid-email",
+      "password": "Test123!"
+    },
+    "weakPassword": {
+      "pseudo": "testuser",
+      "email": "weak@example.com",
+      "password": "123456"
+    },
+    "shortPassword": {
+      "pseudo": "testuser",
+      "email": "short@example.com",
+      "password": "123"
+    }
+  }
+}
